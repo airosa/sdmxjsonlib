@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Time Series Chart Sample</title>
+        <style media="screen" type="text/css">
+          path, line, rect {
+            stroke-width: 1;
+            fill: none;
+          }
+          .line {
+            stroke-width: 2;
+          }
+          .axis {
+            shape-rendering: crispEdges;
+          }
+          .y.axis line, .y.axis path, .x.axis line, .x.axis path {
+            stroke: lightgrey;
+          }
+          .y.axis text, .x.axis text {
+            font-size: 12px;
+          }
+          #title {
+            width: 720px;
+            font-size: 16px;
+            font-weight: bold;
+          }
+          #footnote {
+            width: 720px;
+            font-size: 12px;
+          }
+        </style>
+    </head>
+    <body>
+        <h1>Time Series Chart Sample</h1>
+
+        <p id='title'></p>
+        <div id='chart'></div>
+        <p id='footnote'></p>
+
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.4.12/d3.min.js"></script>
+        <script src="../../sdmxjsonlib.js"></script>
+
+        <script>
+            console.log('sdmxjsonlib version: ' + sdmxjsonlib.version);
+            console.log('d3 version: ' + d3.version);
+
+            var start;
+
+            makeRequest = function () {
+                console.log('Requesting data');
+
+                // We use the URL object to help build the SDMX RESTful URI
+
+                req = new sdmxjsonlib.request.URL();
+
+                req.hostname = 'a-sdw-wsrest.ecb.europa.eu';
+                req.path.pathname = 'service';
+
+                req.path.resource = 'data';
+                req.path.dataFlow.id = 'ICP';
+                req.path.key = [ 'M', [ 'EE', 'FI', 'SE', 'DK', 'U2' ], 'N', '011000', '4', 'INX' ];
+
+                req.query.dimensionAtObservation = 'TIME_PERIOD';
+                req.query.startPeriod = '2005';
+
+                console.log(req.href());
+
+                start = new Date();
+
+                d3.json(req.href()).header('Accept','application/json').get(handleResponse);
+            };
+
+
+            handleResponse = function (error, message) {
+                if (error) return console.warn(error);
+                console.log('Handling response: ' + message.header.id);
+                console.log('Elapsed time ' + (new Date() - start) + ' ms');
+
+                /* Start drawing the chart */
+
+                drawChart(message);
+
+                console.log('Done');
+                console.log('Elapsed time ' + (new Date() - start) + ' ms');
+            };
+
+
+            drawChart = function (message) {
+                console.log('Drawing the chart');
+
+                /*
+                  == sdmxjsonlib functions ==
+                */
+
+                /*
+                  1. STEP
+                  Map dimensions and attributes (=components) into an object.
+                  We are mapping all components also those at the data set level.
+                  Property names were added to the components in the previous step.
+                */
+
+                var structure = sdmxjsonlib.response.mapComponentsForD3(message);
+
+                console.log('Component (dimensions + attributes) count ' + Object.keys(structure).length);
+
+                /*
+                  2. STEP
+                  Map data sets in the sdmx-json message into an array of observations
+                */
+
+                var data = sdmxjsonlib.response.mapDataSetsForD3(message);
+
+                console.log('Observation count ' + data.length);
+
+                /*
+                  == Rest of the code uses only d3 functionality. ==
+                */
+
+                /*
+                  Following code is "structure specific". It uses the dimension and attribute names to
+                  identify data. It will only work for requests that share the same structure.
+                */
+
+                /*
+                  First group and sort observations into series using the _seriesKey
+                */
+
+                var nest = d3.nest();
+
+                nest.key(function (o) {
+                  return o._seriesKey;
+                });
+
+                var sortByEndDate = function (a, b) {
+                  var ad = a.timePeriod._endDate;
+                  var bd = b.timePeriod._endDate;
+                  return ad < bd ? -1 : ad > bd ? 1 : 0;
+                };
+
+                nest.sortValues(sortByEndDate);
+
+                var series = nest.entries(data);
+
+                /* set up svg object */
+
+                var margins = [10, 40, 40, 40];
+                var width = 800 - margins[1] - margins[3];
+                var height = 400 - margins[0] - margins[2];
+
+                var chart = d3.select('#chart')
+                  .append("svg:svg")
+                    .attr("width", width + margins[1] + margins[3])
+                    .attr("height", height + margins[0] + margins[2])
+                  .append("svg:g")
+                    .attr("transform", "translate(" + margins[3] + "," + margins[0] + ")");
+
+                /* Calculate minimum and maximum values for both x and y axis */
+
+                var dateMin = d3.min( data, function(o) { return o.timePeriod._startDate; } );
+                var dateMax = d3.max( data, function(o) { return o.timePeriod._endDate; } );
+                var valueExtent = d3.extent( data, function(o) { return o.obsValue; } );
+
+                /* create axis scales */
+
+                var x = d3.time.scale.utc()
+                  .domain([dateMin, dateMax])
+                  .range([0, width])
+                  .nice(d3.time.year);
+
+                var y = d3.scale.linear()
+                  .domain(valueExtent)
+                  .range([height, 0])
+                  .nice();
+
+                /* create xAxis */
+
+                var xAxis = d3.svg.axis()
+                  .scale(x)
+                  .tickSize(-(height+10))
+                  .ticks(d3.time.years,1)
+                  .tickSubdivide(0)
+                  .tickFormat(d3.time.format("%Y"))
+                  .tickPadding(-2);
+
+                chart.append("svg:g")
+                  .attr("class", "x axis")
+                  .attr("transform", "translate(0," + (height+10) + ")")
+                  .call(xAxis)
+                  .selectAll("text")
+                  .attr("x", 10)
+                  .attr("dy", 20)
+                  .attr("text-anchor", null);
+
+                /* create yAxis */
+
+                var yAxis = d3.svg.axis()
+                  .scale(y)
+                  .ticks(6)
+                  .orient("left");
+
+                chart.append("svg:g")
+                  .attr("class", "y axis")
+                  .attr("transform", "translate(-10,0)")
+                  .call(yAxis);
+
+                /*
+                  Add title to page.
+                  These components are all at the data set level so we can just take the first value.
+                  Field names (i.e. icpItem) are structure specific.
+                */
+
+                var title = [
+                  structure.icpItem.values[0].name,
+                  structure.icpSuffix.values[0].name,
+                  structure.adjustment.values[0].name,
+                  structure.unitIndexBase.values[0].name
+                ].join(', ');
+
+                d3.select('#title').text(title);
+
+                /*
+                  Add footnote to page
+                  Again the compilation attribute will be the data set level for this request.
+                */
+
+                //var footnote = structure.compilation.values[0].name;
+
+                //d3.select('#footnote').text(footnote);
+
+                /* create lines for the series */
+
+                var line = d3.svg.line()
+                  .x(function (d) {
+                      /* Calculate the mid point for each time period to indicate period average */
+                      var diff = (d.timePeriod._endDate - d.timePeriod._startDate) / 2;
+                      var midDate = new Date(d.timePeriod._startDate.getTime() + diff);
+                      return x(midDate);
+                  })
+                  .y(function (d) {
+                      return y(d.obsValue);
+                  });
+
+                var colours = d3.scale.category10();
+
+                var addSeriesToChart = function (series, position) {
+
+                  /* Draw the line for the series */
+
+                  chart.append("svg:path")
+                    .attr("d", line(series.values))
+                    .attr("class", "line")
+                    .style("stroke", colours(position));
+
+                  /* Draw the line for the legend */
+
+                  chart.append("svg:rect")
+                    .attr("x", 20)
+                    .attr("y", 20 + (position * 30))
+                    .attr("height", 2)
+                    .attr("width", 40)
+                    .style("stroke", colours(position));
+
+                  /*
+                    Draw text for the legend. In the request we are only varying
+                    the reference area so we can use that as the legend text.
+                    All observations for the series will have the same value so we just pick
+                    the first one.
+                  */
+
+                  chart.append("svg:text")
+                    .attr("x", 70)
+                    .attr("y", 25 + (position * 30))
+                    .text(series.values[0].refArea.name);
+                };
+
+                series.forEach(addSeriesToChart);
+            };
+
+            /* Make request and draw the chart */
+
+            makeRequest();
+
+        </script>
+    </body>
+</html>
+
+
+
+

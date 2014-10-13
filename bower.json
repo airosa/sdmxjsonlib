@@ -1,0 +1,24 @@
+{
+  "name":               "sdmxjsonlib",
+  "version":            "0.5.2",
+  "description":        "Experimental SDMX-JSON client library",
+  "license":            "MIT",
+  "keywords":           [ "sdmx", "json", "javascript" ],
+  "authors":            [ "Sami Airo" ],
+  "main":               "sdmxjsonlib.js",
+  "devDependencies": {
+    "requirejs":        "^2",
+    "mocha":            "^1",
+    "chai":             "^1",
+    "chai-things":      "git://github.com/RubenVerborgh/Chai-Things.git"
+  },
+  "repository": {
+    "type":             "git",
+    "url":              "https://github.com/airosa/sdmxjsonlib.git"
+  },
+  "ignore": [
+    "bower_components",
+    "test",
+    "samples"
+  ]
+}
