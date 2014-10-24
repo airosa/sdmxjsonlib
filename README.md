@@ -10,11 +10,6 @@ with visualisation libraries like D3. It does not extend any core Javascript
 objects. See the [mapping sample](http://airosa.github.io/sdmxjsonlib/samples/mappings/)
 for a live demo.
 
-There is also a separate library for mapping SDMX-ML 2.1 structure artefacts to
-JavaScript objects. This library is used for developing the SDMX-JSON structure
-message. See the [XML mapping sample](http://airosa.github.io/sdmxjsonlib/samples/sdmxmlmap/)
-for a live demo.
-
 ## Usage ##
 
 You can use [require.js](http://requirejs.org):
@@ -99,33 +94,4 @@ console.log(data.dataset_0.dimension.id[0]);                  // "FREQ"
 console.log(data.dataset_0.dimension.FREQ.label);             // "Frequency"
 console.log(data.dataset_0.dimension.FREQ.category.M.label);  // "Monthly"
 console.log(data.dataset_0.value["0"]);                       // 121.1
-```
-
-## Mapping SDMX-ML 2.1 Structures ##
-
-Separate library sdmxjsonlibxml.js contains functions for mapping SDMX-ML 2.1
-structures to Javascript objects. This library is used for prototyping the
-SDMX-JSON Structure message and supports a limited number of structures
-(more to come):
-
-- Codelist
-- Concept Scheme
-- Agency Scheme
-- Dataflow
-
-Usage is the same as for sdmxjsonlib.js.
-
-### mapSDMXMLResponse
-
-Maps SDMX-ML Structure message to Javascript objects:
-
-```
-// req is a XMLHttpRequest object
-var msg = sdmxjsonlibxml.mapSDMXMLResponse(req.responseXML);
-
-console.log(msg.header.id);                 // "IDREF99224"
-console.log(msg.codelists.length);          // 10
-console.log(msg.codelists[0].id);           // "CL_ADJUSTMENT"
-console.log(msg.codelists[0].name);         // "Adjustment indicator code list"
-console.log(msg.codelists[0].codes[0].id);  // "C"
 ```
