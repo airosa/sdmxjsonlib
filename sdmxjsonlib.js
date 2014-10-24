@@ -124,7 +124,7 @@
                 pushIfDefined( url, dp.join(','), '/' );
             }
 
-            if (this.path.resource === STRUCTURE_RESOURCE) {
+            if (this.path.resource !== DATA_RESOURCE) {
                 pushIfDefined( url, this.path.agencyId, '/' );
                 pushIfDefined( url, this.path.resourceId, '/' );
                 pushIfDefined( url, this.path.version, '/' );
