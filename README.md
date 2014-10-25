@@ -10,6 +10,7 @@ with visualisation libraries like D3. It does not extend any core Javascript
 objects. See the [mapping sample](http://airosa.github.io/sdmxjsonlib/samples/mappings/)
 for a live demo.
 
+
 ## Usage ##
 
 You can use [require.js](http://requirejs.org):
